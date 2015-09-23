@@ -124,13 +124,17 @@ public class MainActivity extends ActionBarActivity {
         public void run() {
             // Update time field
             long nElapsed = SystemClock.elapsedRealtime() - mStartTime;
-            TextView v = (TextView)findViewById(R.id.text_status);
+            TextView v = (TextView)findViewById(R.id.text_elapsed);
             v.setText(DateUtils.formatElapsedTime(nElapsed/1000));
 
             // Every nth time poll WattMeter and GPS
             if(++mIntervalCount >= mPollMult){
                 mIntervalCount = 0;
                 // Do the actual poll
+                if( mService.getmConnectionState() == STATE_CONNECTED){
+                    byte value[] = {(byte) 0xAA, 01, (byte) 0xfe};
+                    mService.writeRXCharacteristic(value);
+                }
             }
             // Set to run again
             mHandler.postDelayed(runGetData,mUIInterval);
