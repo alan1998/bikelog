@@ -12,9 +12,11 @@ import android.content.ServiceConnection;
 import android.content.res.Configuration;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -45,8 +47,12 @@ public class MainActivity extends ActionBarActivity {
     private static final long SCAN_PERIOD = 10000; //10 seconds
     private final int mExpectedRssi = -51;
     private final String mExpectedDev = "";
-    private Button btnReadData;
+    private Button btnStartStop;
     private BikeData mBikeData = new BikeData();
+    private long mStartTime = 0;
+    private final long mUIInterval = 1000; // ms
+    private final int   mPollMult = 6; // n x UIInterval to poll and log Watt/GPS
+    private int mIntervalCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,11 +66,12 @@ public class MainActivity extends ActionBarActivity {
             finish();
             return;
         }
-        btnReadData = (Button)findViewById(R.id.readButton);
+        btnStartStop = (Button)findViewById(R.id.startStopButton);
+        btnStartStop.setEnabled(false);
         service_init();
         mHandler = new Handler();
 
-        mHandler.postDelayed(( new Runnable() {
+        mHandler.postDelayed((new Runnable() {
             @Override
             public void run() {
                 if (!mBtAdapter.isEnabled()) {
@@ -72,27 +79,33 @@ public class MainActivity extends ActionBarActivity {
                     Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                     startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
                     Log.i(TAG, " BT request returned");
-                }
-                else{
-                    Log.i(TAG,"BT already enabled");
+                } else {
+                    Log.i(TAG, "BT already enabled");
                     tryConnect();
                 }
+                btnStartStop.setEnabled(true);
             }
-        }),500);
+        }), 500);
 
-        btnReadData.setOnClickListener(new View.OnClickListener(){
+        btnStartStop.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v){
-                // TODO test status of connection before trying to read data
-                byte  value[] = {(byte)0xAA,01,(byte)0xfe};
-//				try {
-                //send data to service
-                mService.writeRXCharacteristic(value);
-                //Update the log with time stamp
-//				} catch (UnsupportedEncodingException e) {
-                // TODO Auto-generated catch block
-//					e.printStackTrace();
-//				}
+            public void onClick(View v) {
+                // TODO Start timer or restart
+                if(mStartTime==0) {
+                    mStartTime = SystemClock.elapsedRealtime();
+                    mBikeData.setStartTime(mStartTime);
+                }
+                mHandler.post(runGetData);
+                // set a period read/log of data going
+//                byte value[] = {(byte) 0xAA, 01, (byte) 0xfe};
+////				try {
+//                //send data to service
+//                mService.writeRXCharacteristic(value);
+//                //Update the log with time stamp
+////				} catch (UnsupportedEncodingException e) {
+//                // TODO Auto-generated catch block
+////					e.printStackTrace();
+////				}
 
             }
         });
@@ -105,6 +118,24 @@ public class MainActivity extends ActionBarActivity {
         },2000);*/
       //  tryConnect();
     }
+
+    private Runnable runGetData = new Runnable() {
+        @Override
+        public void run() {
+            // Update time field
+            long nElapsed = SystemClock.elapsedRealtime() - mStartTime;
+            TextView v = (TextView)findViewById(R.id.text_status);
+            v.setText(DateUtils.formatElapsedTime(nElapsed/1000));
+
+            // Every nth time poll WattMeter and GPS
+            if(++mIntervalCount >= mPollMult){
+                mIntervalCount = 0;
+                // Do the actual poll
+            }
+            // Set to run again
+            mHandler.postDelayed(runGetData,mUIInterval);
+        }
+    };
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {

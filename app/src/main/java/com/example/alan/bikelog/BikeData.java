@@ -10,6 +10,8 @@ public class BikeData {
     private double mTemp1 = 0;
     private double mTemp2 = 0;
 
+    private long    mStartTime = 0;
+
     public boolean setData(byte [] data){
         boolean bRet = false;
         if(data[0] == (byte)0xAA) {
@@ -31,6 +33,11 @@ public class BikeData {
         else
             bRet = false;
         return bRet;
+    }
+
+    public void setStartTime(long startTime) {
+        this.mStartTime = startTime;
+        //TODO reset state/accumulations etc
     }
 
     public double getVolts() {
