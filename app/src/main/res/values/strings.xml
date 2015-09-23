@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">BikeLog</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="ble_enabled">Bluetooth on</string>
+    <string name="ble_scan">Scanning</string>
+    <string name="ble_scan_stop">Scan stop</string>
+    <string name="ble_uart_found">Found usart</string>
+</resources>
