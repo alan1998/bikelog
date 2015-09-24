@@ -32,6 +32,11 @@ import static android.bluetooth.BluetoothAdapter.*;
 
 
 public class MainActivity extends ActionBarActivity {
+
+    public enum State {
+        INITIAL, RUNNING, PAUSED
+    }
+    private State mAppState = State.INITIAL;
     private BluetoothDevice mDevice = null;
     private BluetoothAdapter mBtAdapter = null;
     private UartService mService = null;
@@ -51,8 +56,12 @@ public class MainActivity extends ActionBarActivity {
     private BikeData mBikeData = new BikeData();
     private long mStartTime = 0;
     private final long mUIInterval = 1000; // ms
-    private final int   mPollMult = 6; // n x UIInterval to poll and log Watt/GPS
+    private final int   mPollMult = 2; // n x UIInterval to poll and log Watt/GPS
     private int mIntervalCount = 0;
+    private TextView mTxtVolts;
+    private TextView mTxtElapsed;
+    private TextView mTxtCurrent;
+    private TextView mTxtTemp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,11 +100,32 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onClick(View v) {
                 // TODO Start timer or restart
-                if(mStartTime==0) {
-                    mStartTime = SystemClock.elapsedRealtime();
-                    mBikeData.setStartTime(mStartTime);
+                switch(mAppState){
+                    case INITIAL:
+                        if (mStartTime == 0) {
+                            mStartTime = SystemClock.elapsedRealtime();
+                            mBikeData.setStartTime(mStartTime);
+                            mAppState = State.RUNNING;
+                            mHandler.post(runGetData);
+                            ((Button)v).setText(R.string.pause);
+                        }
+                        else{
+                            showMessage("Initial state but not Time zero") ;
+                        }
+                        break;
+                    case RUNNING:
+                        // Goto pause and change label
+                        mAppState = State.PAUSED;
+                        ((Button)v).setText(R.string.start);
+                        break;
+                    case PAUSED:
+                        mAppState = State.RUNNING;
+                        ((Button)v).setText(R.string.pause);
+                        mHandler.post(runGetData);
+                        break;
                 }
-                mHandler.post(runGetData);
+
+
                 // set a period read/log of data going
 //                byte value[] = {(byte) 0xAA, 01, (byte) 0xfe};
 ////				try {
@@ -109,6 +139,11 @@ public class MainActivity extends ActionBarActivity {
 
             }
         });
+
+        mTxtCurrent = (TextView)findViewById(R.id.text_current);
+        mTxtVolts = (TextView)findViewById(R.id.text_voltage);
+        mTxtElapsed = (TextView)findViewById(R.id.text_elapsed);
+        mTxtTemp = (TextView)findViewById(R.id.text_temp);
 
 /*        mHandler.postDelayed(new Runnable() {
             @Override
@@ -137,7 +172,8 @@ public class MainActivity extends ActionBarActivity {
                 }
             }
             // Set to run again
-            mHandler.postDelayed(runGetData,mUIInterval);
+            if(mAppState == State.RUNNING)
+                mHandler.postDelayed(runGetData,mUIInterval);
         }
     };
 
@@ -156,7 +192,7 @@ public class MainActivity extends ActionBarActivity {
                             public void run() {
                                 tryConnect();
                             }
-                        }, 15000);
+                        }, 8000);
                     }
 
                     ;
@@ -392,7 +428,15 @@ public class MainActivity extends ActionBarActivity {
                     sb.append("\rDud\r\n");
                 }
 
-                final String txt = sb.toString();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mTxtVolts.setText(mBikeData.getVoltsTxt());
+                        mTxtCurrent.setText(mBikeData.getCurrentTxt());
+                        mTxtTemp.setText(mBikeData.getTemp1Txt());
+                    }
+                });
+                /*final String txt = sb.toString();
                 runOnUiThread(new Runnable() {
                     public void run() {
                         try {
@@ -401,7 +445,7 @@ public class MainActivity extends ActionBarActivity {
                             Log.e(TAG, e.toString());
                         }
                     }
-                });
+                });*/
             }
             //*********************//
             if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)){

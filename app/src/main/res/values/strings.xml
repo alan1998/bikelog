@@ -7,4 +7,6 @@
     <string name="ble_scan">Scanning</string>
     <string name="ble_scan_stop">Scan stop</string>
     <string name="ble_uart_found">Found usart</string>
+    <string name="pause">Pause</string>
+    <string name="start">Start</string>
 </resources>

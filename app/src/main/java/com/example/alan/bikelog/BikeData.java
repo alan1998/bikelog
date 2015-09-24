@@ -43,14 +43,17 @@ public class BikeData {
     public double getVolts() {
         return mVolts;
     }
+    public String getVoltsTxt() { return String.format("%.1f",mVolts);}
 
     public double getCurrent() {
         return mCurrent;
     }
+    public String getCurrentTxt() { return String.format("%.1f",mCurrent);}
 
     public double getTemp1() {
         return mTemp1;
     }
+    public String getTemp1Txt() { return String.format("%.1f",mTemp1);}
 
     private double Volts(int ADC){
         double dRet = (double)(ADC);
